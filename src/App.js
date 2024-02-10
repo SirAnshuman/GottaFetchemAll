@@ -10,46 +10,42 @@ const App = () => {
     findPokemon("pikachu");
   }, []);
 
-  const findPokemon = (pokemonName) =>{
-    console.log(pokemonName);
-    fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonName}`)
-    .then(response => response.json())
-    .then(data => {
-      const typesOf = data.types[0].type.name;
-        fetch(`https://pokeapi.co/api/v2/type/${typesOf}`)
-        .then(response => response.json())
-        .then(data => {
-          const weaknesses = data.damage_relations.double_damage_from.map(type => type.name);
+ const findPokemon = async (pokemonName) => {
+    try {
+        console.log(pokemonName);
+        
+        const response1 = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonName}`);
+        const data1 = await response1.json();
+        
+        const typesOf = data1.types[0].type.name;
+        const response2 = await fetch(`https://pokeapi.co/api/v2/type/${typesOf}`);
+        const data2 = await response2.json();
+        
+        const weaknesses = data2.damage_relations.double_damage_from.map(type => type.name);
+        const response3 = await fetch(`https://pokeapi.co/api/v2/type/${weaknesses[0]}`);
+        const data3 = await response3.json();
+        
+        const weakPokemons = data3.pokemon.map(pokemon => pokemon.pokemon);
+        const selectedPokemons = weakPokemons.filter((_, index) => index % 3 === 0);
 
-          fetch(`https://pokeapi.co/api/v2/type/${weaknesses[0]}`)
-          .then(response => response.json())
-          .then(data => {
-            const weakPokemons = data.pokemon.map(pokemon => pokemon.pokemon);
-            const selectedPokemons = weakPokemons.filter((_, index) => index % 3 === 0);
-          
-            const promises = selectedPokemons.map(pokemon => {
-              return fetch(pokemon.url)
-                .then(response => response.json());
-            });
-            Promise.all(promises)
-            .then(pokemonDetails => {
-              pokemonDetails.forEach(pokemon => {
-                const updatedPokemons = pokemonDetails.map(pokemon => ({
-                  number: pokemon.id,
-                  type: pokemon.types[0].type.name,
-                  name: pokemon.name
-                }));
-                setPokemons(updatedPokemons);
-              });
-            });
-          })
-          .catch(error => {
-            setPokemons([]);
-            console.error('Error fetching data:', error)
-          });
-      })
-    })
-  }
+        const promises = selectedPokemons.map(async pokemon => {
+            const response = await fetch(pokemon.url);
+            return response.json();
+        });
+
+        const pokemonDetails = await Promise.all(promises);
+        const updatedPokemons = pokemonDetails.map(pokemon => ({
+            number: pokemon.id,
+            type: pokemon.types[0].type.name,
+            name: pokemon.name
+        }));
+        
+        setPokemons(updatedPokemons);
+    } catch (error) {
+        setPokemons([]);
+        console.error('Error fetching data:', error);
+    }
+};
 
   return (
     <div className="app">
